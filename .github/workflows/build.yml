@@ -1,4 +1,4 @@
-name: Build PWA to Android APK
+name: Build Simple Android APK
 
 on:
   push:
@@ -10,20 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Ekstrak ZIP
+      - name: Ekstrak Semua File ZIP
         run: |
-          mkdir -p web_files
-          unzip -o TerasKelasKu-App.zip -d ./web_files
+          mkdir -p www_folder
+          find . -maxdepth 2 -name "*.zip" -exec unzip -o {} -d ./www_folder \; || true
+          # Jika tidak ada zip, salin file biasa
+          cp -r *.html *.js *.css www_folder/ 2>/dev/null || true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Setup Java JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -32,17 +29,19 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Bubblewrap & Build APK
+      - name: Build APK
         run: |
-          npm install -g @bubblewrap/cli
-          # Inisialisasi & Generate APK dari PWA
-          cd web_files
-          npx @bubblewrap/cli init --manifest=manifest.json || true
-          npx @bubblewrap/cli build || true
+          npm install -g cordova
+          cordova create myapp com.teras.kelas TerasKelas
+          cd myapp
+          cordova platform add android
+          rm -rf www/*
+          cp -r ../www_folder/* www/ 2>/dev/null || true
+          cordova build android --novr
 
-      - name: Simpan File APK
+      - name: Upload APK Result
         uses: actions/upload-artifact@v4
         with:
-          name: TerasKelas-PWA-APK
-          path: web_files/*.apk
+          name: TerasKelas-APK
+          path: myapp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
           
